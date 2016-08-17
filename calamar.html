@@ -2,7 +2,7 @@
 
 <html>
 <head>
-  <title>Calamars 0.16.1</title>
+  <title>calamar.js</title>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <link rel="stylesheet" media="all" href="public/stylesheets/normalize.css" />
   <link rel="stylesheet" media="all" href="docco.css" />
@@ -13,10 +13,7 @@
 
       <div class="header">
         
-          
-          <h1 id="calamars">Calamars 0.16.1</h1>
-
-          
+          <h1>calamar.js</h1>
         
 
         
@@ -115,67 +112,66 @@
 
       
         
-        <p>An alpha quality, under heavy development, proto-frramework for building
-conversational applications.</p>
-<p>This library is a collection of different helper functions and classes,
-currently there are 4 main components:</p>
-<ul>
-<li><a href="./facebook.html">facebook.js</a><ul>
-<li>a webserver/botserver to be used with the Facebook Messenger API</li>
-</ul>
-</li>
-<li><a href="./router.html">router.js</a><ul>
-<li>a helper function to create question → answers mappings</li>
-</ul>
-</li>
-<li><a href="./wit.html">wit.js</a><ul>
-<li>a driver for the wit.ai webservice</li>
-</ul>
-</li>
-<li><a href="./luis.html">luis.js</a><ul>
-<li>a driver for the LUIS webservice</li>
-</ul>
-</li>
-</ul>
-<hr>
+        <p>constants</p>
 
+        
+          <div class='highlight'><pre><span class="hljs-keyword">const</span> PLATFORM_FACEBOOK_MESSENGER = <span class="hljs-string">'facebookMessenger'</span>;
+<span class="hljs-keyword">const</span> PLATFORM_TELEGRAM = <span class="hljs-string">'telegram'</span>;</pre></div>
         
       
         
-        <h2 id="source">Source</h2>
+        <p>Test to see if an update object is a
+facebook messenger <a href="https://developers.facebook.com/docs/messenger-platform/implementation#receive_message">&quot;messaging&quot; item</a></p>
 
+        
+          <div class='highlight'><pre><span class="hljs-keyword">const</span> isFacebookMessengerMessagingItem = item =&gt;
+    (item &amp;&amp; item.timestamp &amp;&amp; item.sender &amp;&amp; item.recipient);</pre></div>
         
       
         
+        <p>Test to see if an update object is a
+<a href="https://core.telegram.org/bots/api#update">telegram update object</a></p>
+
         
+          <div class='highlight'><pre><span class="hljs-keyword">const</span> isTelegramUpdate = update =&gt; (update &amp;&amp; update.update_id);</pre></div>
         
-          <div class='highlight'><pre>export { version } from '../../package.json';
-export {
-    createRouter,
-    createExactMatchRouter,
-    createRegexRouter,
-    createRegexFunctionRouter
-} from './router';
-export {
-    LuisDriver,
-    previewBaseURL,
-    previewApiPath
-} from './luis';
-export {
-    WitDriver
-} from './wit';
-export {
-    FacebookMessengerBot
-} from './facebook';
-export {
-    calamarMessageFormat
-} from './calamar';
-export {
-    default as ContextSet
-} from './contextSet';
-export {
-    default as #3ContextSet
-} from './s3ContextSet.js';</pre></div>
+      
+        
+        <h2 id="calamarmessageformat-update-">calamarMessageFormat(update)</h2>
+<p>Translate message updates from Telegram or Facebook to a generic
+message update object format containing commonly used attributes.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">const</span> calamarMessageFormat = update =&gt; {
+    <span class="hljs-keyword">if</span> (isFacebookMessengerMessagingItem(update)) {
+        <span class="hljs-keyword">const</span> { message, timestamp, sender, recipient } = update;
+        <span class="hljs-keyword">const</span> { mid, text } = message;
+        <span class="hljs-keyword">return</span> {
+            text,
+            timestamp,
+            messageId: mid,
+            senderId: sender.id,
+            recipientId: recipient.id,
+            chatId: sender.id,
+            platform: PLATFORM_FACEBOOK_MESSENGER
+        };
+    }
+    <span class="hljs-keyword">if</span> (isTelegramUpdate(update)) {
+        <span class="hljs-keyword">const</span> { message_id, text, date, <span class="hljs-keyword">from</span>, chat } = update.message;
+        <span class="hljs-keyword">const</span> timestamp = date.toString().length &lt; <span class="hljs-number">13</span> ? date * <span class="hljs-number">1000</span> : date;
+        <span class="hljs-keyword">return</span> {
+            text,
+            timestamp,
+            messageId: message_id,
+            senderId: <span class="hljs-keyword">from</span>.id,
+            chatId: chat.id,
+            platform: PLATFORM_TELEGRAM
+        };
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+};
+
+<span class="hljs-keyword">export</span> { calamarMessageFormat };</pre></div>
         
       
       <div class="fleur">h</div>

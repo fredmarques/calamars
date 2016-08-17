@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>facebookWebhookSetup</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        
+          
+          
+          
+            <div class='highlight'><pre><span class="hljs-keyword">import</span> crypto <span class="hljs-keyword">from</span> <span class="hljs-string">'crypto'</span>;
+
+<span class="hljs-keyword">const</span> appSecret = process.env.FB_APP_SECRET;</pre></div>
+          
+        
+
+        
+          <div class="toc">
+            <h3>Table of Contents</h3>
+            <ol>
+              
+                
+                <li>
+                  <a class="source" href="calamar.html">
+                    calamar.js
+                  </a>
+                </li>
+              
+                
+                <li>
+                  <a class="source" href="contextSet.html">
+                    contextSet.js
+                  </a>
+                </li>
+              
+                
+                <li>
+                  <a class="source" href="dbLocalStorage.html">
+                    dbLocalStorage.js
+                  </a>
+                </li>
+              
+                
+                <li>
+                  <a class="source" href="facebook.html">
+                    facebook.js
+                  </a>
+                </li>
+              
+                
+                <li>
+                  <a class="source" href="facebookGraphHelpers.html">
+                    facebookGraphHelpers.js
+                  </a>
+                </li>
+              
+                
+                <li>
+                  <a class="source" href="facebookWebhookSetup.html">
+                    facebookWebhookSetup.js
+                  </a>
+                </li>
+              
+                
+                <li>
+                  <a class="source" href="index.html">
+                    index.js
+                  </a>
+                </li>
+              
+                
+                <li>
+                  <a class="source" href="luis.html">
+                    luis.js
+                  </a>
+                </li>
+              
+                
+                <li>
+                  <a class="source" href="router.html">
+                    router.js
+                  </a>
+                </li>
+              
+                
+                <li>
+                  <a class="source" href="s3ContextSet.html">
+                    s3ContextSet.js
+                  </a>
+                </li>
+              
+                
+                <li>
+                  <a class="source" href="s3Storage.html">
+                    s3Storage.js
+                  </a>
+                </li>
+              
+                
+                <li>
+                  <a class="source" href="wit.html">
+                    wit.js
+                  </a>
+                </li>
+              
+            </ol>
+          </div>
+        
+      </div>
+
+      
+        
+        <h1 id="facebookwebhooksetup">facebookWebhookSetup</h1>
+
+        
+      
+        
+        <p>Helpers for generating <a href="http://expressjs.com/">Express</a>-style GET and POST functions to
+be used with Facebook Messenger Webhooks</p>
+<hr>
+
+        
+      
+        
+        
+        
+      
+        
+        <h2 id="setupgetwebhook-fbverifytoken-">setupGetWebhook(fbVerifyToken)</h2>
+<p>High order function that given a verify token returns a function that either
+sends the challenge as response or a validation error message depending on
+the requested <code>hub.verify_token</code> parameter value.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">const</span> setupGetWebhook = fbVerifyToken =&gt; (req, res) =&gt; {
+    <span class="hljs-keyword">if</span> (req.query[<span class="hljs-string">'hub.verify_token'</span>] === fbVerifyToken) {
+        res.send(req.query[<span class="hljs-string">'hub.challenge'</span>]);
+    } <span class="hljs-keyword">else</span> {
+        res.send(<span class="hljs-string">'Error, wrong validation token'</span>);
+    }
+};
+
+<span class="hljs-keyword">const</span> verifySignature = (req, res, buf) =&gt; {
+    <span class="hljs-keyword">const</span> signature = req.headers[<span class="hljs-string">'x-hub-signature'</span>];
+    <span class="hljs-keyword">const</span> sha1Bot = crypto.createHmac(<span class="hljs-string">'sha1'</span>, appSecret).update(buf).digest(<span class="hljs-string">'hex'</span>);
+    <span class="hljs-keyword">const</span> sha1Fb = signature ? signature.slice(<span class="hljs-string">'sha1='</span>.length) : <span class="hljs-literal">null</span>;</pre></div>
+        
+      
+        
+        <p>console.log(&#39;sha1Bot<strong>&#39;, sha1Bot);
+console.log(&#39;sha1Fb_</strong>&#39;, sha1Fb);</p>
+
+        
+          <div class='highlight'><pre>    <span class="hljs-keyword">if</span> (sha1Bot !== sha1Fb) {
+        <span class="hljs-keyword">return</span> res.status(<span class="hljs-number">401</span>).send(<span class="hljs-literal">false</span>);
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+};</pre></div>
+        
+      
+        
+        <h2 id="setuppostwebhook-bot-listeners-">setupPostWebhook(bot, listeners)</h2>
+<p>High order function that given an object with event handlers,
+returns a function that will take POST requests and call the proper handlers
+depending on the contents of the request. Or respond false when no entry
+value is present in the body of the POST.</p>
+<p>The returned function assumes you are using a body parser, such as
+<a href="https://www.npmjs.com/package/body-parser">body-parser</a>, that makes req.body acessible as an object.</p>
+<h3 id="parameters">Parameters</h3>
+<ul>
+<li><strong>listeners</strong> - <em>Object</em> - An object with different handler functions for each
+different webhook post format, see <a href="https://developers.facebook.com/docs/messenger-platform/webhook-reference">Webhook reference</a>.</li>
+<li><strong>bot</strong> - <em>FacebookMessengerBot</em> - A bot server instance to be passed as
+parameter to the listener callbacks.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Listener</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>onUpdate</td>
+<td>Generic callback, called for every messaging item received.</td>
+</tr>
+<tr>
+<td>onMessage</td>
+<td>Specific callback for messages (text or media)</td>
+</tr>
+<tr>
+<td>onAuthentication</td>
+<td>Specific callback for authentication updates</td>
+</tr>
+<tr>
+<td>onDelivery</td>
+<td>Specific callback for delivery updates</td>
+</tr>
+<tr>
+<td>onPostback</td>
+<td>Specific callback for postback updates</td>
+</tr>
+</tbody>
+</table>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">const</span> setupPostWebhook = (listeners, bot) =&gt; (req, res) =&gt; {
+    <span class="hljs-keyword">if</span> (res.headersSent) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    }
+    <span class="hljs-keyword">const</span> fNull = () =&gt; <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">const</span> {
+        onUpdate = fNull,
+        onMessage = fNull,
+        onAuthentication = fNull,
+        onDelivery = fNull,
+        onPostback = fNull
+    } = listeners;
+    <span class="hljs-keyword">if</span> (!req.body.entry || !<span class="hljs-built_in">Array</span>.isArray(req.body.entry)) {
+        <span class="hljs-keyword">return</span> res.send(<span class="hljs-literal">false</span>);
+    }
+    req.body.entry.forEach(({ messaging }) =&gt; {
+        messaging.forEach(update =&gt; {
+            <span class="hljs-keyword">const</span> { message, optin, delivery, postback } = update;
+            <span class="hljs-keyword">const</span> payload = {
+                update,
+                bot
+            };
+            onUpdate(payload);
+            <span class="hljs-keyword">if</span> (message) {
+                onMessage(payload);
+            }
+            <span class="hljs-keyword">if</span> (optin) {
+                onAuthentication(payload);
+            }
+            <span class="hljs-keyword">if</span> (delivery) {
+                onDelivery(payload);
+            }
+            <span class="hljs-keyword">if</span> (postback) {
+                <span class="hljs-keyword">try</span> {
+                    <span class="hljs-keyword">const</span> postbackPayload = <span class="hljs-built_in">JSON</span>.parse(postback.payload);
+                    <span class="hljs-keyword">if</span> (postbackPayload.type &amp;&amp; postbackPayload.type === <span class="hljs-string">'legacy-welcome'</span>) {
+                        bot.sendMessage({
+                            userId: update.sender.id,
+                            text: postbackPayload.message.text
+                        });
+                    }
+                } <span class="hljs-keyword">catch</span> (e) {
+                    <span class="hljs-built_in">console</span>.warn(<span class="hljs-string">'postback is not json'</span>);
+                }
+                onPostback(payload);
+            }
+        });
+    });
+    <span class="hljs-keyword">return</span> res.send(<span class="hljs-literal">true</span>);
+};
+
+<span class="hljs-keyword">export</span> { setupGetWebhook, setupPostWebhook, verifySignature };</pre></div>
+        
+      
+      <div class="fleur">h</div>
+    </div>
+  </div>
+</body>
+</html>
